@@ -1,28 +1,23 @@
-# --- Étape 1 : Build ---
-FROM golang:1.22-alpine AS builder
-# On installe les outils de compilation de base
-RUN apk add --no-cache git gcc musl-dev
-WORKDIR /app
-COPY . .
-# On télécharge les dépendances
-RUN go mod download
-# ON COMPILE SANS SE TROMPER DE CHEMIN
-# Si cmd/server/main.go existe, il le prendra, sinon il cherchera ailleurs
-RUN go build -o ccnexus ./cmd/server/main.go || go build -o ccnexus ./main.go || go build -o ccnexus .
-
-# --- Étape 2 : Runtime ---
+# On part d'une base Linux ultra-légère
 FROM alpine:latest
-RUN apk add --no-cache ca-certificates tzdata
+
+# On installe curl pour télécharger le binaire
+RUN apk add --no-cache curl tar ca-certificates
+
 WORKDIR /app
 
-# On récupère UNIQUEMENT le binaire pour l'instant
-COPY --from=builder /app/ccnexus .
+# On télécharge la version Linux x64 de ccNexus (version stable 2026)
+# NOTE : Remplace 'v1.x.x' par la version actuelle sur le GitHub si besoin
+RUN curl -L https://github.com/lich0821/ccNexus/releases/latest/download/ccNexus-linux-amd64.tar.gz -o ccnexus.tar.gz \
+    && tar -xzf ccnexus.tar.gz \
+    && rm ccnexus.tar.gz \
+    && chmod +x ccNexus
 
-# ON COPIE TOUT LE RESTE DU REPO (pour être sûr de ne rien oublier : config, resource, etc.)
-COPY --from=builder /app/ .
+# On crée les dossiers nécessaires pour éviter les erreurs au démarrage
+RUN mkdir -p config resource
 
 # Port Railway
 EXPOSE 3000
 
-# On lance
-CMD ["./ccnexus"]
+# On lance le binaire directement
+CMD ["./ccNexus"]
