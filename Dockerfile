@@ -1,23 +1,22 @@
-# On part d'une base Linux ultra-légère
 FROM alpine:latest
 
-# On installe curl pour télécharger le binaire
-RUN apk add --no-cache curl tar ca-certificates
+# On installe les outils nécessaires
+RUN apk add --no-cache curl tar ca-certificates libc6-compat
 
 WORKDIR /app
 
-# On télécharge la version Linux x64 de ccNexus (version stable 2026)
-# NOTE : Remplace 'v1.x.x' par la version actuelle sur le GitHub si besoin
+# ÉTAPE CRUCIALE : On télécharge le binaire compilé par l'auteur
+# On utilise la version Linux AMD64
 RUN curl -L https://github.com/lich0821/ccNexus/releases/latest/download/ccNexus-linux-amd64.tar.gz -o ccnexus.tar.gz \
     && tar -xzf ccnexus.tar.gz \
     && rm ccnexus.tar.gz \
     && chmod +x ccNexus
 
-# On crée les dossiers nécessaires pour éviter les erreurs au démarrage
-RUN mkdir -p config resource
+# On crée les répertoires de travail
+RUN mkdir -p resource config
 
-# Port Railway
+# On expose le port
 EXPOSE 3000
 
-# On lance le binaire directement
+# Lancement
 CMD ["./ccNexus"]
