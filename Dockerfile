@@ -1,27 +1,28 @@
-# Étape 1 : Build du binaire Go
+# --- Étape 1 : Build ---
 FROM golang:1.22-alpine AS builder
-RUN apk add --no-cache git
+# On installe les outils de compilation de base
+RUN apk add --no-cache git gcc musl-dev
 WORKDIR /app
 COPY . .
+# On télécharge les dépendances
 RUN go mod download
-# On compile le binaire (le point d'entrée est souvent dans cmd/ ou main.go)
-RUN go build -o ccnexus ./cmd/server/main.go
+# ON COMPILE SANS SE TROMPER DE CHEMIN
+# Si cmd/server/main.go existe, il le prendra, sinon il cherchera ailleurs
+RUN go build -o ccnexus ./cmd/server/main.go || go build -o ccnexus ./main.go || go build -o ccnexus .
 
-# Étape 2 : Image finale légère
+# --- Étape 2 : Runtime ---
 FROM alpine:latest
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 
-# On récupère le binaire
+# On récupère UNIQUEMENT le binaire pour l'instant
 COPY --from=builder /app/ccnexus .
 
-# IMPORTANT : On copie les fichiers de configuration et les assets statiques
-# Si le repo a des dossiers 'config', 'public' ou 'web', il faut les inclure
-COPY --from=builder /app/config ./config 
-COPY --from=builder /app/resource ./resource
+# ON COPIE TOUT LE RESTE DU REPO (pour être sûr de ne rien oublier : config, resource, etc.)
+COPY --from=builder /app/ .
 
-# Port par défaut de ccNexus
+# Port Railway
 EXPOSE 3000
 
-# Commande de lancement
+# On lance
 CMD ["./ccnexus"]
