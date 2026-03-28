@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . .
 RUN go mod download
 # On compile le binaire (le point d'entrée est souvent dans cmd/ ou main.go)
-RUN go build -o ccnexus .
+RUN go build -o ccnexus ./cmd/server/main.go
 
 # Étape 2 : Image finale légère
 FROM alpine:latest
